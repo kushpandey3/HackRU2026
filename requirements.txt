@@ -1,5 +1,12 @@
+# Flask app and environment-file support
 Flask>=3.0,<4.0
-psycopg[binary]>=3.2,<4.0
 python-dotenv>=1.0,<2.0
+
+# PostgreSQL database driver
+psycopg[binary]>=3.2,<4.0
+
+# Yahoo Finance HTTP requests
 requests>=2.32,<3.0
+
+# Production WSGI server
 gunicorn>=22.0,<24.0

@@ -100,10 +100,46 @@
    font-weight: 600;
 }
 
+.account-change.negative,
+.demo-quote .negative {
+   color: #b84940;
+}
+
+.account-change.positive,
+.demo-quote .positive {
+   color: #52796f;
+}
+
 
 .account-change span {
    color: #82918b;
    font-weight: 400;
+}
+
+.portfolio-summary {
+   border-top: 1px solid #edf0e8;
+   display: flex;
+   flex-wrap: wrap;
+   gap: 8px 22px;
+   margin-top: 8px;
+   padding-top: 8px;
+}
+
+.portfolio-summary div {
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+}
+
+.portfolio-summary div > span {
+   color: #82918b;
+   font-size: 9px;
+}
+
+.portfolio-summary div > strong {
+   color: #2F3E46;
+   font-size: 12px;
+   font-weight: 600;
 }
 
 
@@ -147,6 +183,64 @@
 
 .trade-form {
    width: 100%;
+}
+
+.symbol-entry {
+   position: relative;
+   z-index: 2;
+}
+
+.symbol-suggestions {
+   background: white;
+   border: 1px solid #e1e7df;
+   border-radius: 7px;
+   box-shadow: 0 10px 24px rgba(47, 62, 70, .14);
+   left: 0;
+   max-height: 240px;
+   overflow-y: auto;
+   position: absolute;
+   right: 0;
+   top: calc(100% + 4px);
+   z-index: 10;
+}
+
+.symbol-suggestions[hidden] {
+   display: none;
+}
+
+.symbol-suggestion {
+   align-items: center;
+   background: white;
+   border: 0;
+   color: #2F3E46;
+   cursor: pointer;
+   display: flex;
+   gap: 10px;
+   padding: 9px 11px;
+   text-align: left;
+   width: 100%;
+}
+
+.symbol-suggestion + .symbol-suggestion {
+   border-top: 1px solid #f0f2ed;
+}
+
+.symbol-suggestion:hover,
+.symbol-suggestion.active {
+   background: #f3f6f1;
+}
+
+.symbol-suggestion strong {
+   flex: 0 0 58px;
+   font-size: 12px;
+}
+
+.symbol-suggestion span {
+   color: #82918b;
+   font-size: 10px;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
 }
 
 
@@ -322,6 +416,18 @@
    padding: 0 13px;
    transition: background .15s ease;
    width: 100%;
+}
+
+.trade-submit:disabled {
+   cursor: not-allowed;
+   opacity: .55;
+}
+
+.trade-note {
+   color: #52796f;
+   font-size: 10px;
+   min-height: 14px;
+   margin-top: 7px;
 }
 
 

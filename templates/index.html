@@ -26,13 +26,17 @@
 
      <div class="account-heading">
        <h2>Total Account Value</h2>
-       <p class="account-caption">Your portfolio over the past 30 days</p>
+       <p class="account-caption" id="account-caption">Cash plus the current value of your stocks</p>
      </div>
 
 
      <div class="account-total">
-       <h1 class="money-display">$104,280.00</h1>
-       <span class="account-change">+$4,280.00 <span>(4.28%)</span></span>
+       <h1 class="money-display" id="account-equity">—</h1>
+     </div>
+
+     <div class="portfolio-summary">
+       <div><span>Cash available to trade</span><strong id="account-cash">—</strong></div>
+       <div><span>30-day change</span><strong class="account-change" id="account-change">Loading…</strong></div>
      </div>
 
 
@@ -50,11 +54,14 @@
 
      <form class="trade-form" id="trade-form">
        <label class="trade-label" for="trade-symbol">STOCK</label>
-       <div class="trade-input-shell ticker-shell">
-         <span class="ticker-prefix">$</span>
-         <input id="trade-symbol" name="symbol" type="text" value="AAPL" maxlength="8" autocomplete="off" spellcheck="false">
+       <div class="symbol-entry">
+         <div class="trade-input-shell ticker-shell">
+           <span class="ticker-prefix">$</span>
+           <input id="trade-symbol" name="symbol" type="text" placeholder="Search a company or ticker" maxlength="40" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="symbol-suggestions" required>
+         </div>
+         <div class="symbol-suggestions" id="symbol-suggestions" role="listbox" hidden></div>
        </div>
-       <p class="demo-quote" id="demo-quote">AAPL <span>Apple Inc</span> <strong>$189.84</strong></p>
+       <p class="demo-quote" id="demo-quote">Enter a ticker to load its market quote.</p>
 
 
        <div class="trade-label trade-type-label">ORDER TYPE</div>
@@ -67,7 +74,7 @@
        <div class="trade-fields">
          <div>
            <label class="trade-label" for="trade-quantity">SHARES</label>
-           <input class="trade-input" id="trade-quantity" name="quantity" type="number" min="0.01" step="0.01" value="5">
+         <input class="trade-input" id="trade-quantity" name="quantity" type="number" min="0.0001" step="any" placeholder="0" required>
          </div>
          <div>
            <label class="trade-label" for="trade-date">TRADE DATE</label>
@@ -78,9 +85,10 @@
 
        <div class="trade-estimate">
          <span>ESTIMATED ORDER</span>
-         <strong id="trade-estimate">$949.20</strong>
+         <strong id="trade-estimate">Look up a stock and enter shares</strong>
        </div>
-       <button class="trade-submit" id="trade-submit" type="submit">Place buy order <span>↗</span></button>
+       <button class="trade-submit" id="trade-submit" type="submit" disabled>Place buy order <span>↗</span></button>
+       <p class="trade-note" id="trade-note" role="status" aria-live="polite"></p>
      </form>
    </div>
 
@@ -94,7 +102,7 @@
      <span class="trade-history-count" id="trade-history-count">0 TRADES</span>
    </div>
    <div class="trade-history-list" id="trade-history-list">
-     <p class="trade-history-empty">Your demo trades will appear here after you place one.</p>
+     <p class="trade-history-empty">Loading trades…</p>
    </div>
  </section>
 
