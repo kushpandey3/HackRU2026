@@ -1,31 +1,110 @@
 <!doctype html>
 <html lang="en">
+
+
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#101513">
-  <title>Papertrade — Practice with purpose</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>HACKRU Paper Trading Venue</title>
+ <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+ <link href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel = "stylesheet">
+ <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
-<body>
-  <header class="topbar"><a class="brand" href="/"><span class="brand-mark">p.</span><span>papertrade</span></a><div class="top-right"><span class="market-status"><i></i> MARKET DATA CONNECTED</span><span class="avatar">PT</span></div></header>
-  <main>
-    <div class="welcome"><div><p class="eyebrow">YOUR PRACTICE PORTFOLIO</p><h1>Make your next move.</h1></div><div class="account-pill"><span class="status-dot"></span> PAPER ACCOUNT <span class="separator">/</span> $100,000 STARTING CASH</div></div>
-    <section class="overview">
-      <article class="equity-card"><div class="card-top"><span class="label">TOTAL ACCOUNT VALUE</span><span class="live-pill"><i></i> LIVE</span></div><div class="equity-number" id="equity">$100,000.00</div><div class="equity-sub"><span class="positive" id="equity-change">+$0.00 (0.00%)</span><span>over the last 30 days</span></div><div class="chart-wrap"><canvas id="equityChart" aria-label="Account value over the past 30 days"></canvas><div class="chart-loading" id="chartLoading">Loading your portfolio…</div></div><div class="chart-footer"><span>30 DAY PERFORMANCE</span><span id="chartRange">—</span></div></article>
-      <article class="trade-card"><div class="trade-heading"><div><span class="label">PLACE A TRADE</span><h2>Build your position</h2></div><span class="trade-icon">↗</span></div>
-        <form id="tradeForm"><label for="ticker">STOCK</label><div class="input-wrap ticker-wrap"><span class="ticker-symbol">$</span><input id="ticker" name="symbol" maxlength="15" placeholder="Search ticker, e.g. AAPL" autocomplete="off" required><button type="button" class="lookup" id="lookupBtn" aria-label="Look up stock">↵</button></div><div class="quote-result" id="quoteResult"></div>
-          <div class="form-row"><div><label for="quantity">SHARES</label><input id="quantity" name="quantity" type="number" min="0.0001" step="any" placeholder="0" required></div><div><label for="tradeDate">TRADE DATE <span class="label-hint">PAST 30 DAYS</span></label><input id="tradeDate" name="date" type="date" required></div></div>
-          <div class="order-summary"><span>ESTIMATED ORDER</span><strong id="orderEstimate">Enter a stock and shares</strong></div><div class="trade-actions"><button class="btn btn-buy" type="submit" name="side" value="buy">Buy shares <span>↗</span></button><button class="btn btn-sell" type="submit" name="side" value="sell">Sell shares <span>↘</span></button></div><p class="form-note">Orders fill at the market close on your selected date.</p>
-        </form>
-      </article>
-    </section>
-    <section class="lower-grid"><article class="panel"><div class="panel-head"><div><span class="label">YOUR POSITIONS</span><h2>Holdings</h2></div><span class="count" id="holdingCount">0</span></div><div id="holdings" class="holdings-list"><div class="empty-state">Your investments will show up here.</div></div><div class="panel-total"><span>Cash available</span><strong id="cash">$100,000.00</strong></div></article>
-      <article class="panel activity-panel"><div class="panel-head"><div><span class="label">YOUR LATEST MOVES</span><h2>Trade activity</h2></div><span class="label" id="activityCount">PAST TRADES</span></div><div class="activity-list" id="activity"><div class="empty-state">Your trades will show up here.</div></div></article></section>
-    <footer><span>PAPERTRADE <span class="footer-dot">·</span> FOR LEARNING, NOT FINANCIAL ADVICE</span><span id="dataSource">Market prices provided by Yahoo Finance</span></footer>
-  </main>
-  <div class="toast" id="toast" role="status"></div>
-  <script src="{{ url_for('static', filename='app.js') }}"></script>
-</body></html>
+
+
+<body style = "background-color: #FAF3DD;">
+
+
+ <h1 class = "title"> Paper Trading Venue </h1>
+
+
+ <div style = "display: flex">
+
+
+   <div class = "account-box">
+
+
+     <div class="account-heading">
+       <h2>Total Account Value</h2>
+       <p class="account-caption">Your portfolio over the past 30 days</p>
+     </div>
+
+
+     <div class="account-total">
+       <h1 class="money-display">$104,280.00</h1>
+       <span class="account-change">+$4,280.00 <span>(4.28%)</span></span>
+     </div>
+
+
+     <div class="money-chart-area">
+       <canvas id="stats-chart"></canvas>
+     </div>
+
+
+   </div>
+
+
+   <div class="trade-area">
+     <h2>Place a trade</h2>
+
+
+     <form class="trade-form" id="trade-form">
+       <label class="trade-label" for="trade-symbol">STOCK</label>
+       <div class="trade-input-shell ticker-shell">
+         <span class="ticker-prefix">$</span>
+         <input id="trade-symbol" name="symbol" type="text" value="AAPL" maxlength="8" autocomplete="off" spellcheck="false">
+       </div>
+       <p class="demo-quote" id="demo-quote">AAPL <span>Apple Inc</span> <strong>$189.84</strong></p>
+
+
+       <div class="trade-label trade-type-label">ORDER TYPE</div>
+       <div class="trade-type" role="group" aria-label="Order type">
+         <button class="trade-type-button active" type="button" data-side="buy" aria-pressed="true">Buy</button>
+         <button class="trade-type-button" type="button" data-side="sell" aria-pressed="false">Sell</button>
+       </div>
+
+
+       <div class="trade-fields">
+         <div>
+           <label class="trade-label" for="trade-quantity">SHARES</label>
+           <input class="trade-input" id="trade-quantity" name="quantity" type="number" min="0.01" step="0.01" value="5">
+         </div>
+         <div>
+           <label class="trade-label" for="trade-date">TRADE DATE</label>
+           <input class="trade-input trade-date" id="trade-date" name="date" type="date">
+         </div>
+       </div>
+
+
+       <div class="trade-estimate">
+         <span>ESTIMATED ORDER</span>
+         <strong id="trade-estimate">$949.20</strong>
+       </div>
+       <button class="trade-submit" id="trade-submit" type="submit">Place buy order <span>↗</span></button>
+     </form>
+   </div>
+
+
+ </div>
+
+
+ <section class="trade-history" aria-labelledby="trade-history-title">
+   <div class="trade-history-heading">
+     <h2 id="trade-history-title">Recent trades</h2>
+     <span class="trade-history-count" id="trade-history-count">0 TRADES</span>
+   </div>
+   <div class="trade-history-list" id="trade-history-list">
+     <p class="trade-history-empty">Your demo trades will appear here after you place one.</p>
+   </div>
+ </section>
+
+
+ <script src = "{{ url_for('static', filename='app.js') }}"></script>
+
+
+</body>
+
+
+</html>
+
+

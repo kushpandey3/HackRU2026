@@ -1,45 +1,237 @@
-const $ = (id) => document.getElementById(id);
-let chart;
-let quotePrice = null;
-let refreshTimer;
 
-function money(value) { return new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(value); }
-function dateLabel(value) { return new Date(`${value}T12:00:00`).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
-function showToast(message, error=false) {
-  const el=$('toast'); el.textContent=message; el.classList.toggle('error',error); el.classList.add('show');
-  clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>el.classList.remove('show'),3400);
+const chartCanvas = document.getElementById("stats-chart");
+const sampleValues = [
+ 100000, 100420, 100180, 100860, 101120, 100740, 101380, 101050, 101720, 101480,
+ 102060, 101890, 102440, 102110, 102780, 102520, 103160, 102940, 103520, 103250,
+ 103880, 103610, 104120, 103940, 104460, 104180, 104720, 104510, 104060, 104280,
+];
+
+
+const sampleLabels = sampleValues.map((_, index) => {
+ const day = new Date();
+ day.setDate(day.getDate() - (sampleValues.length - 1 - index));
+ return day;
+});
+
+
+const chartContext = chartCanvas.getContext("2d");
+const chartFill = chartContext.createLinearGradient(0, 0, 0, 280);
+chartFill.addColorStop(0, "rgba(82, 121, 111, 0.22)");
+chartFill.addColorStop(1, "rgba(82, 121, 111, 0.015)");
+
+
+new Chart(chartContext, {
+ type: "line",
+ data: {
+   labels: sampleLabels,
+   datasets: [{
+     label: "Account value",
+     data: sampleValues,
+     borderColor: "#52796f",
+     backgroundColor: chartFill,
+     borderWidth: 2.5,
+     fill: true,
+     tension: 0.35,
+     pointRadius: 0,
+     pointHoverRadius: 5,
+     pointHoverBackgroundColor: "#52796f",
+     pointHoverBorderColor: "#ffffff",
+     pointHoverBorderWidth: 2,
+   }],
+ },
+ options: {
+   responsive: true,
+   maintainAspectRatio: false,
+   interaction: { intersect: false, mode: "index" },
+   plugins: {
+     legend: { display: false },
+     tooltip: {
+       backgroundColor: "#2f3e46",
+       padding: 11,
+       displayColors: false,
+       callbacks: {
+         title(items) {
+           return sampleLabels[items[0].dataIndex].toLocaleDateString("en-US", {
+             month: "short", day: "numeric",
+           });
+         },
+         label(item) {
+           return new Intl.NumberFormat("en-US", {
+             style: "currency", currency: "USD",
+           }).format(item.raw);
+         },
+       },
+     },
+   },
+   scales: {
+     x: {
+       type: "category",
+       grid: { display: false },
+       border: { display: false },
+       ticks: {
+         color: "#82918b",
+         maxTicksLimit: 6,
+         maxRotation: 0,
+         callback(value, index) {
+           return sampleLabels[index].toLocaleDateString("en-US", {
+             month: "short", day: "numeric",
+           });
+         },
+       },
+     },
+     y: {
+       suggestedMin: 99000,
+       suggestedMax: 106000,
+       grid: { color: "rgba(47, 62, 70, 0.09)" },
+       border: { display: false },
+       ticks: {
+         color: "#82918b",
+         maxTicksLimit: 5,
+         callback(value) {
+           return `$${Number(value).toLocaleString("en-US", { notation: "compact" })}`;
+         },
+       },
+     },
+   },
+ },
+});
+
+
+// Demo-only controls for the order ticket. Prices are illustrative and not live quotes.
+const tradeForm = document.getElementById("trade-form");
+const tradeSymbol = document.getElementById("trade-symbol");
+const tradeQuantity = document.getElementById("trade-quantity");
+const tradeDate = document.getElementById("trade-date");
+const tradeEstimate = document.getElementById("trade-estimate");
+const tradeSubmit = document.getElementById("trade-submit");
+const tradeNote = document.getElementById("trade-note");
+const demoQuote = document.getElementById("demo-quote");
+const demoPrices = { AAPL: 189.84, MSFT: 421.12, NVDA: 118.42, TSLA: 248.50, AMZN: 187.35 };
+let selectedSide = "buy";
+const tradeHistoryList = document.getElementById("trade-history-list");
+const tradeHistoryCount = document.getElementById("trade-history-count");
+const tradeHistoryKey = "paperTradingDemoHistory";
+
+
+const today = new Date();
+const todayInput = new Date(today.getTime() - today.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+const oldestInput = new Date(today.getTime() - 30 * 86_400_000 - today.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+tradeDate.value = todayInput;
+tradeDate.max = todayInput;
+tradeDate.min = oldestInput;
+
+
+function updateTradeEstimate() {
+ const symbol = tradeSymbol.value.trim().toUpperCase();
+ const quantity = Number(tradeQuantity.value);
+ const price = demoPrices[symbol] || 150;
+ const quoteSymbol = document.createTextNode(symbol || "STOCK");
+ const quoteLabel = document.createElement("span");
+ quoteLabel.textContent = "DEMO PRICE";
+ const quotePrice = document.createElement("strong");
+ quotePrice.textContent = `$${price.toFixed(2)}`;
+ demoQuote.replaceChildren(quoteSymbol, quoteLabel, quotePrice);
+ tradeEstimate.textContent = new Intl.NumberFormat("en-US", {
+   style: "currency", currency: "USD",
+ }).format(Number.isFinite(quantity) ? quantity * price : 0);
+ tradeSubmit.innerHTML = `Place ${selectedSide} order <span>${selectedSide === "buy" ? "↗" : "↘"}</span>`;
 }
-async function api(url, options={}) {
-  const response=await fetch(url,options); const data=await response.json();
-  if(!response.ok) throw new Error(data.error||'Something went wrong.'); return data;
+
+
+function readDemoTrades() {
+ try {
+   return JSON.parse(localStorage.getItem(tradeHistoryKey) || "[]");
+ } catch {
+   return [];
+ }
 }
-function renderChart(history) {
-  const ctx=$('equityChart').getContext('2d'); const values=history.map(p=>p.equity);
-  const up=(values.at(-1)||0)>=(values[0]||0); const color=up?'#a8ed6c':'#ff8279';
-  const gradient=ctx.createLinearGradient(0,0,0,220); gradient.addColorStop(0,up?'rgba(168,237,108,.18)':'rgba(255,130,121,.16)'); gradient.addColorStop(1,'rgba(168,237,108,0)');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{type:'line',data:{labels:history.map(p=>p.date),datasets:[{data:values,borderColor:color,borderWidth:2,fill:true,backgroundColor:gradient,tension:.33,pointRadius:0,pointHoverRadius:4,pointHoverBackgroundColor:color,pointHoverBorderColor:'#171e1b'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#222d27',borderColor:'#394a3e',borderWidth:1,titleColor:'#9aa79f',bodyColor:'#f1f4f2',padding:10,displayColors:false,callbacks:{title:items=>dateLabel(items[0].label),label:item=>money(item.raw)}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{color:'#748078',font:{family:'DM Mono',size:9},maxTicksLimit:6,maxRotation:0,callback:(v,i)=>dateLabel(history[i].date)}},y:{grid:{color:'rgba(135,147,140,.11)'},border:{display:false,dash:[3,4]},ticks:{color:'#748078',font:{family:'DM Mono',size:9},maxTicksLimit:4,callback:v=>'$'+Number(v).toLocaleString('en-US',{notation:'compact',maximumFractionDigits:1})}}}}});
+
+
+function renderDemoTrades() {
+ if (!tradeHistoryList || !tradeHistoryCount) return;
+ const trades = readDemoTrades();
+ tradeHistoryCount.textContent = `${trades.length} ${trades.length === 1 ? "TRADE" : "TRADES"}`;
+ tradeHistoryList.replaceChildren();
+
+
+ if (trades.length === 0) {
+   const empty = document.createElement("p");
+   empty.className = "trade-history-empty";
+   empty.textContent = "Your demo trades will appear here after you place one.";
+   tradeHistoryList.append(empty);
+   return;
+ }
+
+
+ trades.forEach((trade) => {
+   const row = document.createElement("article");
+   row.className = "trade-history-row";
+
+
+   const badge = document.createElement("span");
+   badge.className = `trade-history-badge ${trade.side}`;
+   badge.textContent = trade.side === "buy" ? "B" : "S";
+
+
+   const details = document.createElement("div");
+   details.className = "trade-history-details";
+   const title = document.createElement("strong");
+   title.textContent = `${trade.side.toUpperCase()} ${trade.symbol}`;
+   const meta = document.createElement("span");
+   meta.textContent = `${trade.quantity} shares · ${trade.date}`;
+   details.append(title, meta);
+
+
+   const amount = document.createElement("strong");
+   amount.className = `trade-history-amount ${trade.side}`;
+   amount.textContent = `${trade.side === "buy" ? "−" : "+"}${new Intl.NumberFormat("en-US", {
+     style: "currency", currency: "USD",
+   }).format(trade.quantity * trade.price)}`;
+   row.append(badge, details, amount);
+   tradeHistoryList.append(row);
+ });
 }
-function render(data) {
-  $('equity').textContent=money(data.equity); $('cash').textContent=money(data.cash);
-  const first=data.history[0]?.equity||data.equity, diff=data.equity-first, pct=first?diff/first*100:0;
-  $('equity-change').textContent=`${diff>=0?'+':'−'}${money(Math.abs(diff))} (${diff>=0?'+':'−'}${Math.abs(pct).toFixed(2)}%)`;
-  $('equity-change').className=diff>=0?'positive':'negative'; $('chartRange').textContent=`${dateLabel(data.history[0].date)} — ${dateLabel(data.history.at(-1).date)}`;
-  renderChart(data.history);
-  $('holdings').innerHTML=data.holdings.length?data.holdings.map(h=>`<div class="holding-row"><div><span class="holding-name">${h.symbol}</span><span class="holding-meta">${h.quantity.toLocaleString('en-US',{maximumFractionDigits:4})} shares · ${money(h.price)}</span></div><div><div class="holding-value">${money(h.value)}</div><div class="holding-change">market value</div></div></div>`).join(''):'<div class="empty-state">Your investments will show up here.</div>';
-  $('holdingCount').textContent=data.holdings.length;
-  $('activity').innerHTML=data.trades.length?data.trades.map(t=>`<div class="activity-row"><div class="activity-symbol">${t.symbol.slice(0,3)}</div><div><div class="activity-title"><strong>${t.side.toUpperCase()}</strong> ${Number(t.quantity).toLocaleString('en-US',{maximumFractionDigits:4})} ${t.symbol} <span style="color:#87938c">@ ${money(t.price)}</span></div><div class="activity-date">${dateLabel(t.date)}</div></div><div class="activity-amount ${t.side}">${t.side==='buy'?'−':'+'}${money(t.quantity*t.price)}</div></div>`).join(''):'<div class="empty-state">Your trades will show up here.</div>';
-  $('chartLoading').classList.add('hidden');
-}
-async function refresh() { try { render(await api('/api/dashboard')); } catch(e) { $('chartLoading').textContent=e.message; showToast(e.message,true); } }
-async function lookup() {
-  const symbol=$('ticker').value.trim().toUpperCase(); if(!symbol) return;
-  $('quoteResult').textContent='Looking up market price…';
-  try {const q=await api(`/api/quote/${encodeURIComponent(symbol)}`);quotePrice=q.price;$('ticker').value=q.symbol;$('quoteResult').innerHTML=`${q.name} <strong>${money(q.price)}</strong> <span class="${q.change>=0?'positive':'negative'}">${q.change>=0?'+':''}${q.change_percent.toFixed(2)}%</span>`;updateEstimate();}
-  catch(e){quotePrice=null;$('quoteResult').textContent=e.message;updateEstimate();}
-}
-function updateEstimate(){const qty=Number($('quantity').value);$('orderEstimate').textContent=quotePrice&&qty?money(quotePrice*qty):'Enter a stock and shares';}
-$('lookupBtn').addEventListener('click',lookup);$('ticker').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookup();}});$('ticker').addEventListener('change',lookup);$('quantity').addEventListener('input',updateEstimate);
-$('tradeDate').max=new Date().toISOString().slice(0,10);$('tradeDate').min=new Date(Date.now()-30*86400000).toISOString().slice(0,10);$('tradeDate').value=$('tradeDate').max;
-$('tradeForm').addEventListener('submit',async e=>{e.preventDefault();const side=e.submitter.value;const payload={symbol:$('ticker').value,quantity:$('quantity').value,date:$('tradeDate').value,side};try{const result=await api('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});showToast(result.message);$('quantity').value='';updateEstimate();await refresh();}catch(error){showToast(error.message,true);}});
-refresh();refreshTimer=setInterval(refresh,60000);
+
+
+document.querySelectorAll(".trade-type-button").forEach((button) => {
+ button.addEventListener("click", () => {
+   selectedSide = button.dataset.side;
+   document.querySelectorAll(".trade-type-button").forEach((option) => {
+     const active = option === button;
+     option.classList.toggle("active", active);
+     option.setAttribute("aria-pressed", String(active));
+   });
+   if (tradeNote) tradeNote.textContent = "Demo only · orders are not submitted or saved";
+   updateTradeEstimate();
+ });
+});
+
+
+tradeSymbol.addEventListener("input", updateTradeEstimate);
+tradeQuantity.addEventListener("input", updateTradeEstimate);
+tradeForm.addEventListener("submit", (event) => {
+ event.preventDefault();
+ const symbol = tradeSymbol.value.trim().toUpperCase() || "STOCK";
+ const quantity = Number(tradeQuantity.value);
+ if (!Number.isFinite(quantity) || quantity <= 0) {
+   if (tradeNote) tradeNote.textContent = "Enter a share amount greater than zero.";
+   return;
+ }
+ const price = demoPrices[symbol] || 150;
+ const trades = readDemoTrades();
+ trades.unshift({ symbol, side: selectedSide, quantity, price, date: tradeDate.value });
+ try {
+   localStorage.setItem(tradeHistoryKey, JSON.stringify(trades));
+ } catch {
+   if (tradeNote) tradeNote.textContent = "Could not save this demo trade in this browser.";
+   return;
+ }
+ if (tradeNote) tradeNote.textContent = `Demo ${selectedSide} recorded: ${quantity} ${symbol} at $${price.toFixed(2)}.`;
+ renderDemoTrades();
+});
+
+
+updateTradeEstimate();
+renderDemoTrades();
+
+
