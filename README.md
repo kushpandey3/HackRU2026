@@ -9,6 +9,7 @@ A Flask paper-trading app for tracking simulated stock trades with market prices
 - Track cash, holdings, total account value, recent trades, and 30-day account history.
 - Keep portfolio trades in PostgreSQL between app restarts.
 - Save daily market prices in PostgreSQL and briefly cache market responses for faster page interactions.
+- We used Yahoo Finance to get data on stocks.
 
 ## Requirements
 
